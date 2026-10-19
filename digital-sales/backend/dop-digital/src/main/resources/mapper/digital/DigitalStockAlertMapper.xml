@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalStockAlertMapper">
+    <resultMap id="DigitalStockAlertResult" type="com.dop.digital.domain.DigitalStockAlert">
+        <id property="alertId" column="alert_id" />
+        <result property="skuId" column="sku_id" />
+        <result property="skuCode" column="sku_code" />
+        <result property="skuName" column="sku_name" />
+        <result property="stock" column="stock" />
+        <result property="warnStock" column="warn_stock" />
+        <result property="status" column="status" />
+        <result property="triggeredTime" column="triggered_time" />
+        <result property="resolvedTime" column="resolved_time" />
+    </resultMap>
+
+    <select id="selectLowStockSkus" resultMap="DigitalStockAlertResult">
+        select sku_id, sku_code, sku_name, stock, warn_stock
+        from biz_product_sku
+        where status = '0' and del_flag = '0' and warn_stock &gt; 0 and stock &lt;= warn_stock
+        order by sku_id
+    </select>
+    <select id="selectActiveSkuIds" resultType="long">
+        select sku_id from biz_stock_alert where status = '0'
+    </select>
+    <insert id="insertStockAlert" parameterType="com.dop.digital.domain.DigitalStockAlert" useGeneratedKeys="true" keyProperty="alertId">
+        insert into biz_stock_alert (sku_id, sku_code, sku_name, stock, warn_stock, status, triggered_time, create_by, create_time, remark)
+        values (#{skuId}, #{skuCode}, #{skuName}, #{stock}, #{warnStock}, '0', now(), 'system', now(), 'Quartz低库存预警')
+    </insert>
+    <update id="resolveStockAlert">
+        update biz_stock_alert set status = '1', resolved_time = now(), update_by = 'system', update_time = now()
+        where sku_id = #{skuId} and status = '0'
+    </update>
+</mapper>

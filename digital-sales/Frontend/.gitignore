@@ -1,0 +1,28 @@
+.DS_Store
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+**/*.log
+
+tests/**/coverage/
+tests/e2e/reports
+selenium-debug.log
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.local
+
+# Env files (secrets go in .env, never commit)
+.env
+.env.local
+.env.*.local
+
+# package-lock.json 需要提交：Dockerfile 使用 npm ci，缺少锁文件会构建失败
+yarn.lock

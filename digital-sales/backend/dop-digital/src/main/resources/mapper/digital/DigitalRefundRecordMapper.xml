@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalRefundRecordMapper">
+
+    <resultMap type="DigitalRefundRecord" id="DigitalRefundRecordResult">
+        <id     property="refundId"          column="refund_id"          />
+        <result property="ticketId"          column="ticket_id"          />
+        <result property="ticketNo"          column="ticket_no"          />
+        <result property="orderItemId"       column="order_item_id"      />
+        <result property="orderId"           column="order_id"           />
+        <result property="orderNo"           column="order_no"           />
+        <result property="customerName"      column="customer_name"      />
+        <result property="skuId"             column="sku_id"             />
+        <result property="skuCode"           column="sku_code"           />
+        <result property="productName"       column="product_name"       />
+        <result property="skuName"           column="sku_name"           />
+        <result property="salePrice"         column="sale_price"         />
+        <result property="purchaseQuantity"  column="purchase_quantity"  />
+        <result property="receivedQuantity"  column="received_quantity"  />
+        <result property="handlingResult"    column="handling_result"    />
+        <result property="refundAmount"      column="refund_amount"      />
+        <result property="refundedAmount"    column="refunded_amount"    />
+        <result property="status"            column="status"             />
+        <result property="handlerId"         column="handler_id"         />
+        <result property="handlerName"       column="handler_name"       />
+        <result property="handleTime"        column="handle_time"        />
+        <result property="createBy"          column="create_by"          />
+        <result property="createTime"        column="create_time"        />
+        <result property="updateBy"          column="update_by"          />
+        <result property="updateTime"        column="update_time"        />
+        <result property="remark"            column="remark"             />
+    </resultMap>
+
+    <sql id="selectDigitalRefundRecordVo">
+        select r.refund_id, r.ticket_id, t.ticket_no, i.item_id as order_item_id,
+               i.order_id, o.order_no, coalesce(c.customer_name, o.customer_name) as customer_name,
+               i.sku_id, s.sku_code,
+               i.product_name, i.sku_name, i.sale_price, i.quantity as purchase_quantity,
+               t.received_quantity, t.handling_result, r.refund_amount,
+               i.refunded_amount, r.status, r.handler_id, r.handle_time,
+               r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
+               u.nick_name as handler_name
+        from biz_refund_record r
+        inner join biz_after_sale_ticket t on t.ticket_id = r.ticket_id
+        inner join biz_sale_order_item i on i.item_id = t.order_item_id
+        inner join biz_sale_order o on o.order_id = i.order_id
+        left join biz_customer c on c.customer_id = o.customer_id and c.del_flag = '0'
+        inner join biz_product_sku s on s.sku_id = i.sku_id
+        left join sys_user u on u.user_id = r.handler_id
+    </sql>
+
+    <select id="selectDigitalRefundRecordList" parameterType="DigitalRefundRecord"
+            resultMap="DigitalRefundRecordResult">
+        <include refid="selectDigitalRefundRecordVo"/>
+        <where>
+            <if test="ticketNo != null and ticketNo != ''">
+                and t.ticket_no like concat('%', #{ticketNo}, '%')
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and o.order_no like concat('%', #{orderNo}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and coalesce(c.customer_name, o.customer_name) like concat('%', #{customerName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and r.status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and r.create_time &gt;= #{params.beginTime}
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and r.create_time &lt; date_add(#{params.endTime}, interval 1 day)
+            </if>
+        </where>
+        order by r.refund_id desc
+    </select>
+
+    <select id="selectDigitalRefundRecordById" parameterType="Long"
+            resultMap="DigitalRefundRecordResult">
+        <include refid="selectDigitalRefundRecordVo"/>
+        where r.refund_id = #{refundId}
+    </select>
+
+    <select id="selectDigitalRefundRecordByIdForUpdate" parameterType="Long"
+            resultMap="DigitalRefundRecordResult">
+        select refund_id, ticket_id, refund_amount, status, handler_id, handle_time,
+               create_by, create_time, update_by, update_time, remark
+        from biz_refund_record
+        where refund_id = #{refundId}
+        for update
+    </select>
+
+    <insert id="insertDigitalRefundRecord" parameterType="DigitalRefundRecord"
+            useGeneratedKeys="true" keyProperty="refundId">
+        insert into biz_refund_record(
+            ticket_id,
+            refund_amount,
+            status,
+            create_by,
+            create_time,
+            remark
+        ) values (
+            #{ticketId},
+            #{refundAmount},
+            #{status},
+            #{createBy},
+            sysdate(),
+            #{remark}
+        )
+    </insert>
+
+    <update id="auditDigitalRefund">
+        update biz_refund_record
+        set refund_amount = #{refundAmount},
+            status = 'REFUNDED',
+            handler_id = #{handlerId},
+            handle_time = sysdate(),
+            update_by = #{operator},
+            update_time = sysdate()
+        where refund_id = #{refundId}
+          and status = 'PENDING'
+    </update>
+
+    <update id="cancelDigitalRefund">
+        update biz_refund_record
+        set status = 'CANCELLED',
+            handler_id = #{handlerId},
+            handle_time = sysdate(),
+            remark = #{remark},
+            update_by = #{operator},
+            update_time = sysdate()
+        where refund_id = #{refundId}
+          and status = 'PENDING'
+    </update>
+
+</mapper>

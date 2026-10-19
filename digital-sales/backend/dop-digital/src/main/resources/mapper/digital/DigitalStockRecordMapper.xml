@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalStockRecordMapper">
+
+    <resultMap type="DigitalStockRecord" id="DigitalStockRecordResult">
+        <id     property="recordId"        column="record_id"        />
+        <result property="skuId"           column="sku_id"           />
+        <result property="recordType"      column="record_type"      />
+        <result property="changeDirection" column="change_direction" />
+        <result property="quantity"        column="quantity"         />
+        <result property="beforeStock"     column="before_stock"     />
+        <result property="afterStock"      column="after_stock"      />
+        <result property="bizType"         column="biz_type"         />
+        <result property="bizId"           column="biz_id"           />
+        <result property="requestNo"       column="request_no"       />
+        <result property="skuCode"         column="sku_code"         />
+        <result property="skuName"         column="sku_name"         />
+        <result property="productName"     column="product_name"     />
+        <result property="createBy"        column="create_by"        />
+        <result property="createTime"      column="create_time"      />
+        <result property="remark"          column="remark"           />
+    </resultMap>
+
+    <sql id="selectDigitalStockRecordVo">
+        select r.record_id, r.sku_id, r.record_type, r.change_direction,
+               r.quantity, r.before_stock, r.after_stock, r.biz_type,
+               r.biz_id, r.request_no, r.create_by, r.create_time, r.remark,
+               s.sku_code, s.sku_name, p.product_name
+        from biz_stock_record r
+        left join biz_product_sku s on s.sku_id = r.sku_id
+        left join biz_product p on p.product_id = s.product_id
+    </sql>
+
+    <select id="selectDigitalStockRecordList" parameterType="DigitalStockRecord" resultMap="DigitalStockRecordResult">
+        <include refid="selectDigitalStockRecordVo"/>
+        <where>
+            <if test="skuId != null">
+                and r.sku_id = #{skuId}
+            </if>
+            <if test="recordType != null and recordType != ''">
+                and r.record_type = #{recordType}
+            </if>
+            <if test="requestNo != null and requestNo != ''">
+                and r.request_no like concat('%', #{requestNo}, '%')
+            </if>
+        </where>
+        order by r.record_id desc
+    </select>
+
+    <select id="selectDigitalStockRecordByRequestNo" parameterType="String" resultMap="DigitalStockRecordResult">
+        <include refid="selectDigitalStockRecordVo"/>
+        where r.request_no = #{requestNo} limit 1
+    </select>
+
+    <insert id="insertDigitalStockRecord" parameterType="DigitalStockRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into biz_stock_record(
+            sku_id,
+            record_type,
+            change_direction,
+            quantity,
+            before_stock,
+            after_stock,
+            biz_type,
+            biz_id,
+            request_no,
+            create_by,
+            create_time,
+            remark
+        ) values (
+            #{skuId},
+            #{recordType},
+            #{changeDirection},
+            #{quantity},
+            #{beforeStock},
+            #{afterStock},
+            #{bizType},
+            #{bizId},
+            #{requestNo},
+            #{createBy},
+            sysdate(),
+            #{remark}
+        )
+    </insert>
+
+</mapper>

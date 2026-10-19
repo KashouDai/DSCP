@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalSaleOrderMapper">
+
+    <resultMap type="DigitalSaleOrder" id="DigitalSaleOrderResult">
+        <id     property="orderId"       column="order_id"        />
+        <result property="orderNo"       column="order_no"        />
+        <result property="requestNo"     column="request_no"      />
+        <result property="requestHash"   column="request_hash"    />
+        <result property="customerId"    column="customer_id"     />
+        <result property="customerName"  column="customer_name"   />
+        <result property="customerPhone" column="customer_phone"  />
+        <result property="totalAmount"   column="total_amount"    />
+        <result property="status"        column="status"          />
+        <result property="confirmBy"     column="confirm_by"      />
+        <result property="confirmTime"   column="confirm_time"    />
+        <result property="completeBy"    column="complete_by"     />
+        <result property="completeTime"  column="complete_time"   />
+        <result property="cancelBy"      column="cancel_by"       />
+        <result property="cancelTime"    column="cancel_time"     />
+        <result property="createBy"      column="create_by"       />
+        <result property="createTime"    column="create_time"     />
+        <result property="updateBy"      column="update_by"       />
+        <result property="updateTime"    column="update_time"     />
+        <result property="remark"        column="remark"          />
+    </resultMap>
+
+    <sql id="selectDigitalSaleOrderColumns">
+        o.order_id, o.order_no, o.request_no, o.request_hash, o.customer_id, o.customer_phone,
+        o.total_amount, o.status, o.confirm_by, o.confirm_time, o.complete_by,
+        o.complete_time, o.cancel_by, o.cancel_time, o.create_by, o.create_time,
+        o.update_by, o.update_time, o.remark
+    </sql>
+
+    <sql id="selectDigitalSaleOrderVo">
+        select <include refid="selectDigitalSaleOrderColumns"/>,
+               o.customer_name as customer_name
+        from biz_sale_order o
+    </sql>
+
+    <sql id="selectDigitalSaleOrderDisplayVo">
+        select <include refid="selectDigitalSaleOrderColumns"/>,
+               coalesce(c.customer_name, o.customer_name) as customer_name
+        from biz_sale_order o
+        left join biz_customer c on c.customer_id = o.customer_id and c.del_flag = '0'
+    </sql>
+
+    <select id="selectDigitalSaleOrderList" parameterType="DigitalSaleOrder" resultMap="DigitalSaleOrderResult">
+        <include refid="selectDigitalSaleOrderDisplayVo"/>
+        <where>
+            <if test="orderNo != null and orderNo != ''">
+                and o.order_no like concat('%', #{orderNo}, '%')
+            </if>
+            <if test="customerId != null">
+                and o.customer_id = #{customerId}
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and coalesce(c.customer_name, o.customer_name) like concat('%', #{customerName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and o.status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and o.create_time &gt;= #{params.beginTime}
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and o.create_time &lt; date_add(#{params.endTime}, interval 1 day)
+            </if>
+        </where>
+        order by o.order_id desc
+    </select>
+
+    <select id="selectDigitalSaleOrderById" parameterType="Long" resultMap="DigitalSaleOrderResult">
+        <include refid="selectDigitalSaleOrderDisplayVo"/>
+        where o.order_id = #{orderId}
+    </select>
+
+    <select id="selectDigitalSaleOrderByIdForUpdate" parameterType="Long" resultMap="DigitalSaleOrderResult">
+        <include refid="selectDigitalSaleOrderVo"/>
+        where o.order_id = #{orderId}
+        for update
+    </select>
+
+    <select id="countOrderByCustomerId" parameterType="Long" resultType="int">
+        select count(1) from biz_sale_order where customer_id = #{customerId}
+    </select>
+
+    <select id="selectDigitalSaleOrderByRequestNo" parameterType="String"
+            resultMap="DigitalSaleOrderResult">
+        <include refid="selectDigitalSaleOrderDisplayVo"/>
+        where o.request_no = #{requestNo}
+    </select>
+
+    <select id="selectDigitalSaleOrderByIds" resultMap="DigitalSaleOrderResult">
+        <include refid="selectDigitalSaleOrderVo"/>
+        where o.order_id in
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        order by o.order_id desc
+    </select>
+
+    <insert id="insertDigitalSaleOrder" parameterType="DigitalSaleOrder" useGeneratedKeys="true" keyProperty="orderId">
+        insert into biz_sale_order(
+            order_no,
+            request_no,
+            request_hash,
+            customer_id,
+            customer_name,
+            customer_phone,
+            total_amount,
+            status,
+            create_by,
+            create_time,
+            remark
+        ) values (
+            #{orderNo},
+            #{requestNo},
+            #{requestHash},
+            #{customerId},
+            #{customerName},
+            #{customerPhone},
+            #{totalAmount},
+            #{status},
+            #{createBy},
+            sysdate(),
+            #{remark}
+        )
+    </insert>
+
+    <update id="updateDigitalSaleOrderDraft" parameterType="DigitalSaleOrder">
+        update biz_sale_order
+        set customer_id = #{customerId},
+            customer_name = #{customerName},
+            customer_phone = #{customerPhone},
+            total_amount = #{totalAmount},
+            update_by = #{updateBy},
+            update_time = sysdate(),
+            remark = #{remark}
+        where order_id = #{orderId} and status = 'DRAFT'
+    </update>
+
+    <update id="confirmDigitalSaleOrder">
+        update biz_sale_order
+        set status = 'CONFIRMED',
+            confirm_by = #{operator},
+            confirm_time = sysdate(),
+            update_by = #{operator},
+            update_time = sysdate()
+        where order_id = #{orderId} and status = 'DRAFT'
+    </update>
+
+    <update id="cancelDigitalSaleOrderDraft">
+        update biz_sale_order
+        set status = 'CANCELLED',
+            cancel_by = #{operator},
+            cancel_time = sysdate(),
+            update_by = #{operator},
+            update_time = sysdate()
+        where order_id = #{orderId} and status = 'DRAFT'
+    </update>
+
+    <update id="cancelDigitalSaleOrderConfirmed">
+        update biz_sale_order
+        set status = 'CANCELLED',
+            cancel_by = #{operator},
+            cancel_time = sysdate(),
+            update_by = #{operator},
+            update_time = sysdate()
+        where order_id = #{orderId} and status = 'CONFIRMED'
+    </update>
+
+    <update id="completeDigitalSaleOrder">
+        update biz_sale_order
+        set status = 'COMPLETED',
+            complete_by = #{operator},
+            complete_time = sysdate(),
+            update_by = #{operator},
+            update_time = sysdate()
+        where order_id = #{orderId} and status = 'CONFIRMED'
+    </update>
+
+    <delete id="deleteDigitalSaleOrderByIds">
+        delete from biz_sale_order
+        where status = 'DRAFT'
+          and order_id in
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </delete>
+
+</mapper>

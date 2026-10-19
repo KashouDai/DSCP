@@ -1,0 +1,50 @@
+# Java / Maven
+**/target/
+*.class
+
+# Node / Vue
+**/node_modules/
+**/dist/
+*.tsbuildinfo
+
+# Python
+**/__pycache__/
+**/.pytest_cache/
+*.py[cod]
+.venv/
+venv/
+
+# Local configuration and secrets
+# 真实密钥只放 .env / .env.local / .env.*.local，这三类永不提交；
+# .env.development / .env.production / .env.staging 是构建配置，需要提交
+.env
+.env.local
+.env.*.local
+# Frontend environment files may contain deployment-specific endpoints.
+digital-sales/Frontend/.env.development
+digital-sales/Frontend/.env.production
+digital-sales/Frontend/.env.staging
+**/.env
+**/.env.local
+**/.env.*.local
+
+# IDE and OS files
+**/.idea/
+**/.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and local runtime data
+*.log
+**/logs/
+**/uploads/
+
+# Redis runtime data and backups
+*.rdb
+*.aof
+appendonlydir/
+redis-aof-backup*/
+
+# Local debug artifacts
+/captcha-*.png
+

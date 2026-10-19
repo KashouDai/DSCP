@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalAfterSaleTicketMapper">
+
+    <resultMap type="DigitalAfterSaleTicket" id="DigitalAfterSaleTicketResult">
+        <id     property="ticketId"             column="ticket_id"             />
+        <result property="ticketNo"             column="ticket_no"             />
+        <result property="ticketType"           column="ticket_type"           />
+        <result property="orderItemId"          column="order_item_id"         />
+        <result property="sourceTicketId"       column="source_ticket_id"      />
+        <result property="validityExemptReason" column="validity_exempt_reason"/>
+        <result property="applyQuantity"        column="apply_quantity"        />
+        <result property="receivedQuantity"     column="received_quantity"     />
+        <result property="handlingResult"       column="handling_result"        />
+        <result property="status"               column="status"                />
+        <result property="handlerId"            column="handler_id"            />
+        <result property="faultDesc"            column="fault_desc"            />
+        <result property="handleResult"         column="handle_result"         />
+        <result property="imageUrls"            column="image_urls"            />
+        <result property="createBy"             column="create_by"             />
+        <result property="createTime"           column="create_time"           />
+        <result property="updateBy"             column="update_by"             />
+        <result property="updateTime"           column="update_time"           />
+        <result property="remark"               column="remark"                />
+        <result property="orderId"              column="order_id"              />
+        <result property="orderNo"              column="order_no"              />
+        <result property="customerId"           column="customer_id"           />
+        <result property="customerName"         column="customer_name"         />
+        <result property="customerPhone"        column="customer_phone"        />
+        <result property="orderCompleteTime"    column="order_complete_time"   />
+        <result property="skuId"                column="sku_id"                />
+        <result property="skuCode"              column="sku_code"              />
+        <result property="productName"          column="product_name"          />
+        <result property="skuName"              column="sku_name"              />
+        <result property="salePrice"            column="sale_price"            />
+        <result property="purchaseQuantity"     column="purchase_quantity"     />
+        <result property="refundedQuantity"     column="refunded_quantity"     />
+        <result property="handlerName"          column="handler_name"          />
+    </resultMap>
+
+    <sql id="selectDigitalAfterSaleTicketVo">
+        select t.ticket_id, t.ticket_no, t.ticket_type, t.order_item_id,
+               t.source_ticket_id, t.validity_exempt_reason, t.apply_quantity,
+               t.received_quantity, t.handling_result, t.status, t.handler_id,
+               t.fault_desc, t.handle_result, t.image_urls, t.create_by,
+               t.create_time, t.update_by, t.update_time, t.remark,
+               i.order_id, o.order_no, o.customer_id,
+               coalesce(c.customer_name, o.customer_name) as customer_name,
+               o.customer_phone, o.complete_time as order_complete_time,
+               i.sku_id, s.sku_code, i.product_name, i.sku_name, i.sale_price,
+               i.quantity as purchase_quantity, i.refunded_quantity,
+               u.nick_name as handler_name
+        from biz_after_sale_ticket t
+        inner join biz_sale_order_item i on i.item_id = t.order_item_id
+        inner join biz_sale_order o on o.order_id = i.order_id
+        left join biz_customer c on c.customer_id = o.customer_id and c.del_flag = '0'
+        inner join biz_product_sku s on s.sku_id = i.sku_id
+        left join sys_user u on u.user_id = t.handler_id
+    </sql>
+
+    <select id="selectDigitalAfterSaleTicketList" parameterType="DigitalAfterSaleTicket"
+            resultMap="DigitalAfterSaleTicketResult">
+        <include refid="selectDigitalAfterSaleTicketVo"/>
+        <where>
+            <if test="ticketNo != null and ticketNo != ''">
+                and t.ticket_no like concat('%', #{ticketNo}, '%')
+            </if>
+            <if test="ticketType != null and ticketType != ''">
+                and t.ticket_type = #{ticketType}
+            </if>
+            <if test="status != null and status != ''">
+                and t.status = #{status}
+            </if>
+            <if test="orderNo != null and orderNo != ''">
+                and o.order_no like concat('%', #{orderNo}, '%')
+            </if>
+            <if test="customerName != null and customerName != ''">
+                and coalesce(c.customer_name, o.customer_name) like concat('%', #{customerName}, '%')
+            </if>
+            <if test="productName != null and productName != ''">
+                and i.product_name like concat('%', #{productName}, '%')
+            </if>
+            <if test="handlerId != null">
+                and t.handler_id = #{handlerId}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and t.create_time &gt;= #{params.beginTime}
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and t.create_time &lt; date_add(#{params.endTime}, interval 1 day)
+            </if>
+        </where>
+        order by t.ticket_id desc
+    </select>
+
+    <select id="selectDigitalAfterSaleTicketById" parameterType="Long"
+            resultMap="DigitalAfterSaleTicketResult">
+        <include refid="selectDigitalAfterSaleTicketVo"/>
+        where t.ticket_id = #{ticketId}
+    </select>
+
+    <select id="selectDigitalAfterSaleTicketByIdForUpdate" parameterType="Long"
+            resultMap="DigitalAfterSaleTicketResult">
+        select ticket_id, ticket_no, ticket_type, order_item_id, source_ticket_id,
+               validity_exempt_reason, apply_quantity, received_quantity,
+               handling_result, status, handler_id, fault_desc, handle_result,
+               image_urls, create_by, create_time, update_by, update_time, remark
+        from biz_after_sale_ticket
+        where ticket_id = #{ticketId}
+        for update
+    </select>
+
+    <insert id="insertDigitalAfterSaleTicket" parameterType="DigitalAfterSaleTicket"
+            useGeneratedKeys="true" keyProperty="ticketId">
+        insert into biz_after_sale_ticket(
+            ticket_no,
+            ticket_type,
+            order_item_id,
+            source_ticket_id,
+            validity_exempt_reason,
+            apply_quantity,
+            status,
+            fault_desc,
+            image_urls,
+            create_by,
+            create_time,
+            remark
+        ) values (
+            #{ticketNo},
+            #{ticketType},
+            #{orderItemId},
+            #{sourceTicketId},
+            #{validityExemptReason},
+            #{applyQuantity},
+            #{status},
+            #{faultDesc},
+            #{imageUrls},
+            #{createBy},
+            sysdate(),
+            #{remark}
+        )
+    </insert>
+
+    <update id="assignDigitalAfterSaleTicket">
+        update biz_after_sale_ticket
+        set handler_id = #{handlerId},
+            status = 'PROCESSING',
+            update_by = #{operator},
+            update_time = sysdate()
+        where ticket_id = #{ticketId}
+          and status in ('PENDING', 'PROCESSING')
+    </update>
+
+    <update id="handleDigitalAfterSaleTicket" parameterType="DigitalAfterSaleTicket">
+        update biz_after_sale_ticket
+        <set>
+            status = 'PROCESSING',
+            handle_result = #{handleResult},
+            update_by = #{updateBy},
+            update_time = sysdate(),
+            <if test="faultDesc != null and faultDesc != ''">
+                fault_desc = #{faultDesc},
+            </if>
+            <if test="imageUrls != null and imageUrls != ''">
+                image_urls = #{imageUrls},
+            </if>
+        </set>
+        where ticket_id = #{ticketId}
+          and status in ('PENDING', 'PROCESSING')
+    </update>
+
+    <update id="completeDigitalAfterSaleTicket">
+        update biz_after_sale_ticket
+        set status = 'COMPLETED',
+            handle_result = #{handleResult},
+            update_by = #{operator},
+            update_time = sysdate()
+        where ticket_id = #{ticketId}
+          and ticket_type = 'REPAIR'
+          and status = 'PROCESSING'
+    </update>
+
+    <update id="completeReturnDigitalAfterSaleTicket">
+        update biz_after_sale_ticket
+        set status = 'COMPLETED',
+            received_quantity = #{receivedQuantity},
+            handling_result = #{handlingResult},
+            handle_result = #{handleResult},
+            update_by = #{operator},
+            update_time = sysdate()
+        where ticket_id = #{ticketId}
+          and ticket_type = 'RETURN'
+          and status in ('PENDING', 'PROCESSING')
+    </update>
+
+    <update id="closeDigitalAfterSaleTicket">
+        update biz_after_sale_ticket
+        set status = 'CLOSED',
+            handle_result = #{closeReason},
+            update_by = #{operator},
+            update_time = sysdate()
+        where ticket_id = #{ticketId}
+          and status in ('PENDING', 'PROCESSING')
+    </update>
+
+    <select id="countActiveTickets" resultType="int">
+        select count(1)
+        from biz_after_sale_ticket
+        where order_item_id = #{orderItemId}
+          and status in ('PENDING', 'PROCESSING')
+    </select>
+
+    <select id="countActiveReturnTickets" resultType="int">
+        select count(1)
+        from biz_after_sale_ticket
+        where order_item_id = #{orderItemId}
+          and ticket_type = 'RETURN'
+          and status in ('PENDING', 'PROCESSING')
+    </select>
+
+    <select id="sumActiveTicketQuantity" resultType="int">
+        select coalesce(sum(apply_quantity), 0)
+        from biz_after_sale_ticket
+        where order_item_id = #{orderItemId}
+          and ticket_type = #{ticketType}
+          and status in ('PENDING', 'PROCESSING')
+    </select>
+
+</mapper>

@@ -1,0 +1,16 @@
+Third-Party Notices
+===================
+
+本仓库的 digital-sales 子项目基于 RuoYi-Vue 开发。
+
+RuoYi-Vue
+  https://gitee.com/y_project/RuoYi-Vue
+  Copyright (c) 2018 ruoyi
+  Licensed under the MIT License.
+
+RuoYi-Vue 为上述部分提供基础框架能力（用户、角色、菜单、部门、字典、参数、
+定时任务、代码生成等）。digital-sales 在其之上实现了数码销售业务模块
+（商品、订单、库存、售后、退款、数据看板）以及 Agent 集成。
+
+完整的 MIT 许可文本见 digital-sales/backend/bin/LICENSE 与
+digital-sales/Frontend/LICENSE。

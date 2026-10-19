@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dop.digital.mapper.DigitalSaleOrderItemMapper">
+
+    <resultMap type="DigitalSaleOrderItem" id="DigitalSaleOrderItemResult">
+        <id     property="itemId"           column="item_id"           />
+        <result property="orderId"          column="order_id"          />
+        <result property="skuId"            column="sku_id"            />
+        <result property="productName"      column="product_name"      />
+        <result property="skuName"          column="sku_name"          />
+        <result property="salePrice"        column="sale_price"        />
+        <result property="quantity"         column="quantity"          />
+        <result property="refundedQuantity" column="refunded_quantity" />
+        <result property="refundedAmount"   column="refunded_amount"   />
+        <result property="createBy"         column="create_by"         />
+        <result property="createTime"       column="create_time"       />
+        <result property="updateBy"         column="update_by"         />
+        <result property="updateTime"       column="update_time"       />
+        <result property="remark"           column="remark"            />
+    </resultMap>
+
+    <select id="countOrderItemBySkuId" parameterType="Long" resultType="int">
+        select count(1) from biz_sale_order_item where sku_id = #{skuId}
+    </select>
+
+    <select id="selectDigitalSaleOrderItemList" resultMap="DigitalSaleOrderItemResult">
+        select item_id, order_id, sku_id, product_name, sku_name, sale_price,
+               quantity, refunded_quantity, refunded_amount, create_by,
+               create_time, update_by, update_time, remark
+        from biz_sale_order_item
+        where order_id = #{orderId}
+        order by item_id
+    </select>
+
+    <select id="selectDigitalSaleOrderItemByIdForUpdate" resultMap="DigitalSaleOrderItemResult">
+        select item_id, order_id, sku_id, product_name, sku_name, sale_price,
+               quantity, refunded_quantity, refunded_amount, create_by,
+               create_time, update_by, update_time, remark
+        from biz_sale_order_item
+        where item_id = #{itemId}
+        for update
+    </select>
+
+    <insert id="batchInsertDigitalSaleOrderItem">
+        insert into biz_sale_order_item(
+            order_id,
+            sku_id,
+            product_name,
+            sku_name,
+            sale_price,
+            quantity,
+            refunded_quantity,
+            refunded_amount,
+            create_by,
+            create_time,
+            remark
+        ) values
+        <foreach collection="items" item="item" separator=",">
+            (
+                #{item.orderId},
+                #{item.skuId},
+                #{item.productName},
+                #{item.skuName},
+                #{item.salePrice},
+                #{item.quantity},
+                0,
+                0,
+                #{item.createBy},
+                sysdate(),
+                #{item.remark}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteDigitalSaleOrderItemByOrderId">
+        delete from biz_sale_order_item where order_id = #{orderId}
+    </delete>
+
+    <delete id="deleteDigitalSaleOrderItemByOrderIds">
+        delete from biz_sale_order_item
+        where order_id in
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </delete>
+
+    <update id="increaseRefundedQuantity">
+        update biz_sale_order_item
+        set refunded_quantity = refunded_quantity + #{quantity},
+            update_by = #{operator},
+            update_time = sysdate()
+        where item_id = #{itemId}
+          and refunded_quantity + #{quantity} &lt;= quantity
+    </update>
+
+    <update id="increaseRefundedAmount">
+        update biz_sale_order_item
+        set refunded_amount = refunded_amount + #{amount},
+            update_by = #{operator},
+            update_time = sysdate()
+        where item_id = #{itemId}
+          and refunded_amount + #{amount} &lt;= sale_price * quantity
+    </update>
+
+</mapper>
